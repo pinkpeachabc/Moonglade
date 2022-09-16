@@ -43,7 +43,7 @@ install_Moonglade()
     aiur install/caddy
     if [ "$db_type" == "mssql" ];
     then
-        aiur install/sql_server $dbPassword
+        apt install mysql-server -y
     else
         apt install mysql-server -y
     fi
@@ -70,8 +70,8 @@ install_Moonglade()
     # Configure different database type
     if [ "$db_type" == "mssql" ];
     then    
-        connectionString="Server=tcp:127.0.0.1,1433;Database=Moonglade;uid=sa;Password=$dbPassword;MultipleActiveResultSets=True;"
-        db_name="SqlServer"
+        connectionString="Server=localhost;Port=3306;Database=Moonglade;uid=root;Password=$dbPassword;"
+        db_name="MySql"
     else    
         connectionString="Server=localhost;Port=3306;Database=Moonglade;uid=root;Password=$dbPassword;"
         db_name="MySql"
@@ -86,8 +86,8 @@ install_Moonglade()
     # Create database.
     if [ "$db_type" == "mssql" ];
     then
-        aiur console/success 'Seeding...'
-        aiur mssql/create_db "Moonglade" $dbPassword
+        mysql -uroot -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password by '$dbPassword'"
+        mysql -uroot -e "create database Moonglade" -p"$dbPassword"
     else
         # Initiate mysql root password and create database Moonglade
         mysql -uroot -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password by '$dbPassword'"
@@ -115,9 +115,9 @@ install_Moonglade()
     # Finish the installation
     if [ "$db_type" == "mssql" ];
     then
-        db_port="1433"   
-        db_user="sa"
-        db_data_dir="/var/opt/mssql/"
+        db_port="3306"
+        db_user="root"
+        db_data_dir="/var/lib/mysql/"
     else   
         db_port="3306"
         db_user="root"
