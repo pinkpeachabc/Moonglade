@@ -4,7 +4,6 @@ using Microsoft.ApplicationInsights.DependencyCollector;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.Extensibility.Implementation;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.Rewrite;
 using Microsoft.FeatureManagement;
 using Moonglade.Data.MySql;
 using Moonglade.Data.SqlServer;
@@ -40,7 +39,7 @@ var app = builder.Build();
 
 await FirstRun();
 
-ConfigureMiddleware(app, app.Services);
+ConfigureMiddleware(app);
 
 app.Run();
 
@@ -78,15 +77,10 @@ void ConfigureServices(IServiceCollection services)
 
     services.AddMediatR(AppDomain.CurrentDomain.GetAssemblies());
 
-    // ASP.NET Setup
-
     // Fix docker deployments on Azure App Service blows up with Azure AD authentication
     // https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/proxy-load-balancer?view=aspnetcore-6.0
     // "Outside of using IIS Integration when hosting out-of-process, Forwarded Headers Middleware isn't enabled by default."
-    services.Configure<ForwardedHeadersOptions>(options =>
-    {
-        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    });
+    services.Configure<ForwardedHeadersOptions>(options => options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto);
 
     services.AddOptions()
             .AddHttpContextAccessor()
@@ -94,19 +88,13 @@ void ConfigureServices(IServiceCollection services)
             .AddFeatureManagement();
     services.AddAzureAppConfiguration()
             .AddApplicationInsightsTelemetry()
-            .ConfigureTelemetryModule<DependencyTrackingTelemetryModule>((module, _) =>
-            {
-                module.EnableSqlCommandTextInstrumentation = true;
-            });
+            .ConfigureTelemetryModule<DependencyTrackingTelemetryModule>((module, _) => module.EnableSqlCommandTextInstrumentation = true);
 
     services.AddSession(options =>
     {
         options.IdleTimeout = TimeSpan.FromMinutes(20);
         options.Cookie.HttpOnly = true;
-    }).AddSessionBasedCaptcha(options =>
-    {
-        options.FontStyle = FontStyle.Bold;
-    });
+    }).AddSessionBasedCaptcha(options => options.FontStyle = FontStyle.Bold);
 
     services.AddLocalization(options => options.ResourcesPath = "Resources");
     services.AddSwaggerGen();
@@ -114,12 +102,10 @@ void ConfigureServices(IServiceCollection services)
             .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
             .ConfigureApiBehaviorOptions(ConfigureApiBehavior.BlogApiBehavior);
     services.AddRazorPages()
-            .AddDataAnnotationsLocalization(options =>
-            {
-                options.DataAnnotationLocalizerProvider = (_, factory) => factory.Create(typeof(SharedResource));
-            })
+            .AddDataAnnotationsLocalization(options => options.DataAnnotationLocalizerProvider = (_, factory) => factory.Create(typeof(SharedResource)))
             .AddRazorPagesOptions(options =>
             {
+                options.Conventions.AddPageRoute("/Admin/Post", "admin");
                 options.Conventions.AuthorizeFolder("/Admin");
                 options.Conventions.AuthorizeFolder("/Settings");
             });
@@ -146,9 +132,6 @@ void ConfigureServices(IServiceCollection services)
     });
 
     services.AddHealthChecks();
-    services.AddTransient<RequestBodyLoggingMiddleware>()
-            .AddTransient<ResponseBodyLoggingMiddleware>();
-
     services.AddPingback()
             .AddSyndication()
             .AddNotification()
@@ -160,12 +143,8 @@ void ConfigureServices(IServiceCollection services)
             .AddBlogConfig(builder.Configuration)
             .AddBlogAuthenticaton(builder.Configuration)
             .AddComments(builder.Configuration)
-            .AddImageStorage(builder.Configuration, options =>
-            {
-                options.ContentRootPath = builder.Environment.ContentRootPath;
-            })
+            .AddImageStorage(builder.Configuration, options => options.ContentRootPath = builder.Environment.ContentRootPath)
             .Configure<List<ManifestIcon>>(builder.Configuration.GetSection("ManifestIcons"));
-
 
     switch (dbType.ToLower())
     {
@@ -209,7 +188,7 @@ async Task FirstRun()
     }
 }
 
-void ConfigureMiddleware(IApplicationBuilder appBuilder, IServiceProvider services)
+void ConfigureMiddleware(IApplicationBuilder appBuilder)
 {
     appBuilder.UseForwardedHeaders();
 
@@ -217,7 +196,7 @@ void ConfigureMiddleware(IApplicationBuilder appBuilder, IServiceProvider servic
     {
         app.Logger.LogWarning($"Running in environment: {app.Environment.EnvironmentName}. Application Insights disabled.");
 
-        var tc = services.GetRequiredService<TelemetryConfiguration>();
+        var tc = app.Services.GetRequiredService<TelemetryConfiguration>();
         tc.DisableTelemetry = true;
         TelemetryDebugWriter.IsTracingDisabled = true;
     }
@@ -252,10 +231,7 @@ void ConfigureMiddleware(IApplicationBuilder appBuilder, IServiceProvider servic
 
     if (app.Environment.IsDevelopment())
     {
-        appBuilder.UseSwagger().UseSwaggerUI(c =>
-        {
-            c.SwaggerEndpoint("/swagger/v1/swagger.json", "Moonglade API V1");
-        });
+        appBuilder.UseSwagger().UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Moonglade API V1"));
         appBuilder.UseRouteDebugger().UseDeveloperExceptionPage();
     }
     else
@@ -277,9 +253,6 @@ void ConfigureMiddleware(IApplicationBuilder appBuilder, IServiceProvider servic
         options.DefaultImagePath = app.Configuration["ImageStorage:DefaultImagePath"];
     });
 
-    var rewriteOptions = new RewriteOptions().AddRedirect("^admin$", "admin/post");
-    appBuilder.UseRewriter(rewriteOptions);
-
     appBuilder.UseStaticFiles();
     appBuilder.UseSession().UseCaptchaImage(options =>
     {
@@ -291,12 +264,6 @@ void ConfigureMiddleware(IApplicationBuilder appBuilder, IServiceProvider servic
     appBuilder.UseIpRateLimiting();
     appBuilder.UseRouting();
     appBuilder.UseAuthentication().UseAuthorization();
-
-    if (app.Environment.IsDevelopment())
-    {
-        appBuilder.UseMiddleware<RequestBodyLoggingMiddleware>()
-                  .UseMiddleware<ResponseBodyLoggingMiddleware>();
-    }
 
     appBuilder.UseEndpoints(ConfigureEndpoints.BlogEndpoints);
 }
