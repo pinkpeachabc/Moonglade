@@ -21,12 +21,12 @@ public class CreateAccountCommand : IRequest
     public string Password { get; set; }
 }
 
-public class CreateAccountCommandHandler : AsyncRequestHandler<CreateAccountCommand>
+public class CreateAccountCommandHandler : IRequestHandler<CreateAccountCommand>
 {
-    private readonly IRepository<LocalAccountEntity> _accountRepo;
-    public CreateAccountCommandHandler(IRepository<LocalAccountEntity> accountRepo) => _accountRepo = accountRepo;
+    private readonly IRepository<LocalAccountEntity> _repo;
+    public CreateAccountCommandHandler(IRepository<LocalAccountEntity> repo) => _repo = repo;
 
-    protected override Task Handle(CreateAccountCommand request, CancellationToken ct)
+    public Task Handle(CreateAccountCommand request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Username))
         {
@@ -51,6 +51,6 @@ public class CreateAccountCommandHandler : AsyncRequestHandler<CreateAccountComm
             PasswordHash = hash
         };
 
-        return _accountRepo.AddAsync(account, ct);
+        return _repo.AddAsync(account, ct);
     }
 }

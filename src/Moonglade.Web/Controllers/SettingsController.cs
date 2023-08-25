@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Localization;
-using Moonglade.Caching.Filters;
-using Moonglade.Notification.Client;
+﻿using Edi.PasswordGenerator;
+using Microsoft.AspNetCore.Localization;
+using Moonglade.Email.Client;
 using NUglify;
-using System.Reflection;
 
 namespace Moonglade.Web.Controllers;
 
@@ -29,28 +28,6 @@ public class SettingsController : ControllerBase
         _mediator = mediator;
     }
 
-    [HttpGet("release/check")]
-    [ProducesResponseType(typeof(CheckNewReleaseResult), StatusCodes.Status200OK)]
-    public async Task<IActionResult> CheckNewRelease([FromServices] IReleaseCheckerClient releaseCheckerClient)
-    {
-        var info = await releaseCheckerClient.CheckNewReleaseAsync();
-
-        var asm = Assembly.GetEntryAssembly();
-        var currentVersion = new Version(asm.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version);
-        var latestVersion = new Version(info.TagName.Replace("v", string.Empty));
-
-        var hasNewVersion = latestVersion > currentVersion && !info.PreRelease;
-
-        var result = new CheckNewReleaseResult
-        {
-            HasNewRelease = hasNewVersion,
-            CurrentAssemblyFileVersion = currentVersion.ToString(),
-            LatestReleaseInfo = info
-        };
-
-        return Ok(result);
-    }
-
     [AllowAnonymous]
     [HttpGet("set-lang")]
     public IActionResult SetLanguage(string culture, string returnUrl)
@@ -72,19 +49,19 @@ public class SettingsController : ControllerBase
             _logger.LogError(e, e.Message, culture, returnUrl);
 
             // We shall not respect the return URL now, because the returnUrl might be hacking.
-            return LocalRedirect("~/");
+            return NoContent();
         }
     }
 
     [HttpPost("general")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [TypeFilter(typeof(ClearBlogCache), Arguments = new object[] { CacheDivision.General, "theme" })]
-    public async Task<IActionResult> General(GeneralSettings model, [FromServices] ITimeZoneResolver timeZoneResolver)
+    [TypeFilter(typeof(ClearBlogCache), Arguments = new object[] { BlogCachePartition.General, "theme" })]
+    public async Task<IActionResult> General(GeneralSettings model, ITimeZoneResolver timeZoneResolver)
     {
         model.AvatarUrl = _blogConfig.GeneralSettings.AvatarUrl;
 
         _blogConfig.GeneralSettings = model;
-        _blogConfig.GeneralSettings.TimeZoneUtcOffset = timeZoneResolver.GetTimeSpanByZoneId(model.TimeZoneId).ToString();
+        _blogConfig.GeneralSettings.TimeZoneUtcOffset = timeZoneResolver.GetTimeSpanByZoneId(model.TimeZoneId);
 
         await SaveConfigAsync(_blogConfig.GeneralSettings);
 
@@ -107,6 +84,12 @@ public class SettingsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Notification(NotificationSettings model)
     {
+        if (model.EnableEmailSending && string.IsNullOrWhiteSpace(model.AzureStorageQueueConnection))
+        {
+            ModelState.AddModelError(nameof(model.AzureStorageQueueConnection), "Azure Storage Queue Connection is required.");
+            return BadRequest(ModelState.CombineErrorMessages());
+        }
+
         _blogConfig.NotificationSettings = model;
 
         await SaveConfigAsync(_blogConfig.NotificationSettings);
@@ -142,7 +125,7 @@ public class SettingsController : ControllerBase
     [HttpPost("watermark")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Image(ImageSettings model, [FromServices] IBlogImageStorage imageStorage)
+    public async Task<IActionResult> Image(ImageSettings model, IBlogImageStorage imageStorage)
     {
         _blogConfig.ImageSettings = model;
 
@@ -198,7 +181,7 @@ public class SettingsController : ControllerBase
 
     [HttpPost("shutdown")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
-    public IActionResult Shutdown([FromServices] IHostApplicationLifetime applicationLifetime)
+    public IActionResult Shutdown(IHostApplicationLifetime applicationLifetime)
     {
         _logger.LogWarning($"Shutdown is requested by '{User.Identity?.Name}'.");
         applicationLifetime.StopApplication();
@@ -207,8 +190,7 @@ public class SettingsController : ControllerBase
 
     [HttpPost("reset")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
-    public async Task<IActionResult> Reset([FromServices] BlogDbContext context,
-        [FromServices] IHostApplicationLifetime applicationLifetime)
+    public async Task<IActionResult> Reset(BlogDbContext context, IHostApplicationLifetime applicationLifetime)
     {
         _logger.LogWarning($"System reset is requested by '{User.Identity?.Name}', IP: {Helper.GetClientIP(HttpContext)}.");
 
@@ -245,11 +227,32 @@ public class SettingsController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("custom-menu")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CustomMenu(CustomMenuSettingsJsonModel model)
+    {
+        if (model.IsEnabled && string.IsNullOrWhiteSpace(model.MenuJson))
+        {
+            ModelState.AddModelError(nameof(CustomMenuSettingsJsonModel.MenuJson), "Menus is required");
+            return BadRequest(ModelState.CombineErrorMessages());
+        }
+
+        _blogConfig.CustomMenuSettings = new()
+        {
+            IsEnabled = model.IsEnabled,
+            Menus = model.MenuJson.FromJson<Menu[]>()
+        };
+
+        await SaveConfigAsync(_blogConfig.CustomMenuSettings);
+        return NoContent();
+    }
+
     [HttpGet("password/generate")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public IActionResult GeneratePassword()
+    public IActionResult GeneratePassword([FromServices] IPasswordGenerator passwordGenerator)
     {
-        var password = Helper.GeneratePassword(10, 3);
+        var password = passwordGenerator.GeneratePassword(new(10, 3));
         return Ok(new
         {
             ServerTimeUtc = DateTime.UtcNow,
@@ -261,13 +264,5 @@ public class SettingsController : ControllerBase
     {
         var kvp = _blogConfig.UpdateAsync(blogSettings);
         await _mediator.Send(new UpdateConfigurationCommand(kvp.Key, kvp.Value));
-    }
-
-    public class CheckNewReleaseResult
-    {
-        public bool HasNewRelease { get; set; }
-
-        public ReleaseInfo LatestReleaseInfo { get; set; }
-        public string CurrentAssemblyFileVersion { get; set; }
     }
 }

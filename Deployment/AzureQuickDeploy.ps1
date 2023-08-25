@@ -56,7 +56,7 @@ while($true) {
         continue
     }
     # Create the request
-    $HTTP_Status = Get-UrlStatusCode('http://' + $webAppName + '.azurewebsites.net')
+    $HTTP_Status = Get-UrlStatusCode('https://' + $webAppName + '.azurewebsites.net')
     if($HTTP_Status -eq 0) {
         break
     } else {
@@ -159,7 +159,7 @@ if (!$appExists) {
     }
     else {
         Write-Host "Using Windows Plan with deployment from GitHub"
-        $echo = az webapp create -g $rsgName -p $aspName -n $webAppName --runtime "DOTNET |6.0"
+        $echo = az webapp create -g $rsgName -p $aspName -n $webAppName --runtime "DOTNET |7.0"
     }
     $echo = az webapp config set -g $rsgName -n $webAppName --always-on true --use-32bit-worker-process false --http20-enabled true
 }
@@ -177,7 +177,7 @@ $storageAccountCheck = az storage account list --query "[?name=='$storageAccount
 $storageAccountExists = $storageAccountCheck.Length -gt 0
 if (!$storageAccountExists) {
     Write-Host "Creating Storage Account"
-    $echo = az storage account create --name $storageAccountName --resource-group $rsgName --location $regionName --sku Standard_LRS --kind StorageV2
+    $echo = az storage account create --name $storageAccountName --resource-group $rsgName --location $regionName --sku Standard_LRS --kind StorageV2 --allow-blob-public-access true
 }
 
 $storageConn = az storage account show-connection-string -g $rsgName -n $storageAccountName | ConvertFrom-Json
@@ -237,6 +237,8 @@ if ($useLinuxPlanWithDocker) {
     $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ImageStorage__Provider=azurestorage
     $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ImageStorage__AzureStorageSettings__ConnectionString=$scon
     $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ImageStorage__AzureStorageSettings__ContainerName=$storageContainerName
+    $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ForwardedHeaders__UseForwardedHeaders=true
+    $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
 }
 else {
     $echo = az webapp config appsettings set -g $rsgName -n $webAppName --settings ImageStorage:Provider=azurestorage
@@ -262,5 +264,10 @@ if (!$useLinuxPlanWithDocker) {
     Write-Host "Pulling source code and run build on Azure (this takes time, please wait)..."
     $echo = az webapp deployment source config --branch master --manual-integration --name $webAppName --repo-url https://github.com/EdiWang/Moonglade --resource-group $rsgName
 }
+
+az webapp restart --name $webAppName --resource-group $rsgName
+
+# Container warm up
+Start-Sleep -Seconds 20
 
 Read-Host -Prompt "Setup is done, you should be able to run Moonglade on '$webAppUrl' now, press [ENTER] to exit."

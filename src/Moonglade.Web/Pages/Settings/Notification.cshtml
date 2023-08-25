@@ -1,30 +1,31 @@
 ﻿@page "/admin/settings/notification"
-@model Moonglade.Web.Pages.Settings.NotificationModel
 @section scripts{
-<script type="module">
-    import * as settings from '/js/app/admin.settings.module.js';
-    
-    window.sendTestEmail = function () {
-        document.querySelector('#a-send-test-mail').classList.add('disabled');
-        document.querySelector('#a-send-test-mail').setAttribute('disabled', 'disabled');
+    <script type="module">
+        import * as settings from '/js/app/admin.settings.module.js';
 
-        callApi('/api/settings/email/test',
-            'POST',
-            {},
-            async function(success) {
-                blogToast.success('Email is sent.');
-            },
-            function(always) {
-                document.querySelector('#a-send-test-mail').classList.remove('disabled');
-                document.querySelector('#a-send-test-mail').removeAttribute('disabled');
-            });
-    };
+        window.sendTestEmail = function () {
+            document.querySelector('#a-send-test-mail').classList.add('disabled');
+            document.querySelector('#a-send-test-mail').setAttribute('disabled', 'disabled');
 
-    const form = document.querySelector('#form-settings');
-    form.addEventListener('submit', settings.handleSettingsSubmit);
-</script>
+            callApi('/api/settings/email/test',
+                'POST',
+                {},
+                async function (success) {
+                    blogToast.success('Email is sent.');
+                },
+                function (always) {
+                    document.querySelector('#a-send-test-mail').classList.remove('disabled');
+                    document.querySelector('#a-send-test-mail').removeAttribute('disabled');
+                });
+        };
+
+        const form = document.querySelector('#form-settings');
+        form.addEventListener('submit', settings.handleSettingsSubmit);
+    </script>
 }
-
+@{
+    var settings = BlogConfig.NotificationSettings;
+}
 <partial name="_SettingsHeader" />
 <div class="ps-4 pe-4">
     <form id="form-settings" asp-controller="Settings" asp-action="Notification">
@@ -34,26 +35,26 @@
 
                 <div class="row g-3 align-items-center settings-entry mb-4">
                     <div class="col-auto">
-                        <i class="bi-pen settings-entry-icon"></i>
+                        <i class="bi-link settings-entry-icon"></i>
                     </div>
                     <div class="col">
-                        <label asp-for="ViewModel.EmailDisplayName"></label>
+                        <label asp-for="@settings.AzureStorageQueueConnection"></label>
+                        <div class="form-text">Please follow instructions <a href="https://github.com/EdiWang/Moonglade/blob/master/README.md#email-notification" target="_blank">here</a> to setup email API.</div>
                     </div>
                     <div class="col-md-5">
-                        <input asp-for="ViewModel.EmailDisplayName" class="form-control" required maxlength="64" />
+                        <input asp-for="@settings.AzureStorageQueueConnection" class="form-control" spellcheck="false" />
                     </div>
                 </div>
 
                 <div class="row g-3 align-items-center settings-entry mb-4">
                     <div class="col-auto">
-                        <i class="bi-link settings-entry-icon"></i>
+                        <i class="bi-pen settings-entry-icon"></i>
                     </div>
                     <div class="col">
-                        <label asp-for="ViewModel.AdminEmail"></label>
-                        <div class="form-text">Please follow instructions <a href="https://github.com/EdiWang/Moonglade/blob/master/README.md#email-notification" target="_blank">here</a> to setup notification API.</div>
+                        <label asp-for="@settings.EmailDisplayName"></label>
                     </div>
                     <div class="col-md-5">
-                        <input asp-for="ViewModel.AdminEmail" class="form-control" />
+                        <input asp-for="@settings.EmailDisplayName" class="form-control" required maxlength="64" />
                     </div>
                 </div>
 
@@ -70,7 +71,8 @@
                         </a>
                     </div>
                 </div>
-
+            </div>
+            <div class="col-md-6">
                 <h6 class="card-subtitle mb-4 text-muted">@SharedLocalizer["Notification Options"]</h6>
 
                 <div class="row g-3 align-items-center settings-entry mb-4">
@@ -78,12 +80,12 @@
                         <i class="bi-envelope settings-entry-icon"></i>
                     </div>
                     <div class="col">
-                        <label asp-for="ViewModel.EnableEmailSending" class="form-check-label"></label>
+                        <label asp-for="@settings.EnableEmailSending" class="form-check-label"></label>
                     </div>
                     <div class="col-md-5 text-end">
                         <div class="form-check form-switch">
                             <input type="hidden" name="EnableEmailSending" value="false">
-                            <input type="checkbox" name="EnableEmailSending" value="true" class="form-check-input" @(Model.ViewModel.EnableEmailSending ? "checked" : null)>
+                            <input type="checkbox" name="EnableEmailSending" value="true" class="form-check-input" @(settings.EnableEmailSending ? "checked" : null)>
                         </div>
                     </div>
                 </div>
@@ -93,12 +95,12 @@
                         <i class="bi-chat-left settings-entry-icon"></i>
                     </div>
                     <div class="col">
-                        <label asp-for="ViewModel.SendEmailOnNewComment" class="form-check-label"></label>
+                        <label asp-for="@settings.SendEmailOnNewComment" class="form-check-label"></label>
                     </div>
                     <div class="col-md-5 text-end">
                         <div class="form-check form-switch">
                             <input type="hidden" name="SendEmailOnNewComment" value="false">
-                            <input type="checkbox" name="SendEmailOnNewComment" value="true" class="form-check-input" @(Model.ViewModel.SendEmailOnNewComment ? "checked" : null)>
+                            <input type="checkbox" name="SendEmailOnNewComment" value="true" class="form-check-input" @(settings.SendEmailOnNewComment ? "checked" : null)>
                         </div>
                     </div>
                 </div>
@@ -108,12 +110,12 @@
                         <i class="bi-reply settings-entry-icon"></i>
                     </div>
                     <div class="col">
-                        <label asp-for="ViewModel.SendEmailOnCommentReply" class="form-check-label"></label>
+                        <label asp-for="@settings.SendEmailOnCommentReply" class="form-check-label"></label>
                     </div>
                     <div class="col-md-5 text-end">
                         <div class="form-check form-switch">
                             <input type="hidden" name="SendEmailOnCommentReply" value="false">
-                            <input type="checkbox" name="SendEmailOnCommentReply" value="true" class="form-check-input" @(Model.ViewModel.SendEmailOnCommentReply ? "checked" : null)>
+                            <input type="checkbox" name="SendEmailOnCommentReply" value="true" class="form-check-input" @(settings.SendEmailOnCommentReply ? "checked" : null)>
                         </div>
                     </div>
                 </div>

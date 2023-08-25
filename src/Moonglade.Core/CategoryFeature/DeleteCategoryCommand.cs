@@ -1,4 +1,4 @@
-﻿using Moonglade.Caching;
+﻿using Edi.CacheAside.InMemory;
 using Moonglade.Data;
 
 namespace Moonglade.Core.CategoryFeature;
@@ -9,12 +9,12 @@ public class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategoryComman
 {
     private readonly IRepository<CategoryEntity> _catRepo;
     private readonly IRepository<PostCategoryEntity> _postCatRepo;
-    private readonly IBlogCache _cache;
+    private readonly ICacheAside _cache;
 
     public DeleteCategoryCommandHandler(
         IRepository<CategoryEntity> catRepo,
         IRepository<PostCategoryEntity> postCatRepo,
-        IBlogCache cache)
+        ICacheAside cache)
     {
         _catRepo = catRepo;
         _postCatRepo = postCatRepo;
@@ -30,7 +30,7 @@ public class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategoryComman
         if (pcs is not null) await _postCatRepo.DeleteAsync(pcs, ct);
 
         await _catRepo.DeleteAsync(request.Id, ct);
-        _cache.Remove(CacheDivision.General, "allcats");
+        _cache.Remove(BlogCachePartition.General.ToString(), "allcats");
 
         return OperationCode.Done;
     }

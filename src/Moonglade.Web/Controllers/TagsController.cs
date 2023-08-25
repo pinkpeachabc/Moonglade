@@ -1,5 +1,4 @@
-﻿using Moonglade.Caching.Filters;
-using Moonglade.Core.TagFeature;
+﻿using Moonglade.Core.TagFeature;
 using System.ComponentModel.DataAnnotations;
 
 namespace Moonglade.Web.Controllers;
@@ -13,21 +12,12 @@ public class TagsController : ControllerBase
 
     public TagsController(IMediator mediator) => _mediator = mediator;
 
-    [HttpGet("list")]
-    [FeatureGate(FeatureFlags.EnableWebApi)]
-    [ProducesResponseType(typeof(IReadOnlyList<Tag>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> List()
-    {
-        var tags = await _mediator.Send(new GetTagsQuery());
-        return Ok(tags);
-    }
-
     [HttpGet("names")]
     [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Names()
     {
-        var tagNames = await _mediator.Send(new GetTagNamesQuery());
-        return Ok(tagNames);
+        var names = await _mediator.Send(new GetTagNamesQuery());
+        return Ok(names);
     }
 
     [HttpPost]

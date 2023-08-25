@@ -1,11 +1,4 @@
-﻿@font-face {
-    font-family: 'SairaSemiCondensed-Bold';
-    src: url('/webfonts/SairaSemiCondensed-Bold.eot?#iefix') format('embedded-opentype'), url('/webfonts/SairaSemiCondensed-Bold.woff') format('woff'), url('/webfonts/SairaSemiCondensed-Bold.ttf') format('truetype'), url('/webfonts/SairaSemiCondensed-Bold.svg#SairaSemiCondensed-Bold') format('svg');
-    font-weight: normal;
-    font-style: normal;
-}
-
-:root {
+﻿:root {
     --transparent-light-15: rgba(255, 255, 255, 0.15);
     --transparent-light-20: rgba(255, 255, 255, 0.2);
     --transparent-light-30: rgba(255, 255, 255, 0.3);
@@ -38,7 +31,7 @@
 }
 
 ::selection {
-    background-color: var(--bs-primary);
+    background-color: var(--accent-color1);
     color: var(--bs-white);
     text-shadow: none;
 }
@@ -92,6 +85,10 @@ footer {
             color: var(--bs-white);
         }
 
+.bg-gray-1 {
+    background-color: var(--gray-1);
+}
+
 .nav-item-icon {
     width: 16px;
     display: inline-block;
@@ -133,7 +130,8 @@ h5 {
 }
 
 .font-sairas {
-    font-family: SairaSemiCondensed-Bold, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Microsoft YaHei" !important;
+    font-family: "Saira Semi Condensed Bold", "Saira Semi Condensed", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Microsoft YaHei" !important;
+    font-weight: bold;
 }
 
 .flex-spacer {
@@ -276,8 +274,8 @@ h5 {
 
 .blogger-head-pic {
     border: 5px solid var(--transparent-light-50);
-    height: 110px;
-    width: 110px;
+    height: 120px;
+    width: 120px;
 }
 
 .blog-info-photo-text {
@@ -528,7 +526,8 @@ div.animbrand a:hover {
     }
 
 .navbar .dropdown-item.active,
-.dropdown-item:hover {
+.navbar .dropdown-item:hover,
+.navbar .dropdown-item:focus {
     background-color: var(--accent-color3);
     color: var(--bs-white);
     text-decoration: none;

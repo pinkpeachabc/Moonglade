@@ -1,10 +1,10 @@
 # Moonglade Blog
 
 [![Build Status](https://dev.azure.com/ediwang/Edi-GitHub/_apis/build/status/EdiWang.Moonglade?branchName=master)](https://dev.azure.com/ediwang/Moonglade%20DevOps/_build/latest?definitionId=68&branchName=master) 
-![Docker Build and Push](https://github.com/EdiWang/Moonglade/workflows/Docker%20Build%20and%20Push/badge.svg) 
+[![Docker Linux x64](https://github.com/EdiWang/Moonglade/actions/workflows/docker.yml/badge.svg)](https://github.com/EdiWang/Moonglade/actions/workflows/docker.yml)
 ![.NET Build Linux](https://github.com/EdiWang/Moonglade/workflows/.NET%20Build%20Linux/badge.svg) 
 
-The [.NET](https://dotnet.microsoft.com/) blog system of [edi.wang](https://edi.wang) that runs on [**Microsoft Azure**](https://azure.microsoft.com/en-us/). Designed for developers, enabling most common blogging features including posts, comments, categories, archive, tags and pages.
+The [.NET](https://dotnet.microsoft.com/) blog system that optimized for [**Microsoft Azure**](https://azure.microsoft.com/en-us/). Designed for developers, enabling most common blogging features including posts, comments, categories, archive, tags and pages.
 
 ## 📦 Deployment
 
@@ -14,15 +14,26 @@ The [.NET](https://dotnet.microsoft.com/) blog system of [edi.wang](https://edi.
 
 ### ☁ Full Deploy on Azure (Recommend)
 
-This is the way https://edi.wang is deployed, by taking advantage of as many Azure services as possible, the blog can run very fast and secure.
+This is the way https://edi.wang is deployed, by taking advantage of as many Azure services as possible, the blog can run very fast and secure. 
 
-This diagram shows a full Azure deployment for Moonglade for reference.
+But there is no automated script to deploy it, you need to manually create all the resources and configure them.
 
-![image](https://ediwang.cdn.moonglade.blog/web-assets/ediwang-azure-arch-visio.png)
+![image](https://cdn-blog.edi.wang/web-assets/ediwang-azure-arch-visio-nov2022.png)
 
-### 🐋 Quick Deploy on Azure
+### 🐋 Quick Deploy on Azure (App Service on Linux)
 
-Use automated deployment script to get your Moonglade up and running in 10 minutes, follow instructions [here](https://github.com/EdiWang/Moonglade/wiki/Quick-Deploy-on-Azure)
+Use automated deployment script to get your Moonglade up and running in 10 minutes with minimal Azure components, follow instructions [here](https://github.com/EdiWang/Moonglade/wiki/Quick-Deploy-on-Azure)
+
+### 🐋 Quick Deploy with Docker-Compose
+
+Simply go the the root folder of this repo and run:
+
+```bash
+docker-compose build
+docker-compose up
+```
+
+That's it! Now open: [Browser: http://localhost:8080](http://localhost:8080)
 
 ### 🐧 Quick Deploy on Linux without Docker
 
@@ -32,35 +43,39 @@ To quickly get it running on a new Linux machine without Docker, follow instruct
 
 Tools | Alternative
 --- | ---
-[Visual Studio 2022 v17.0+](https://visualstudio.microsoft.com/) | [Visual Studio Code](https://code.visualstudio.com/) with [.NET 6.0 SDK](http://dot.net)
-[SQL Server 2019](https://www.microsoft.com/en-us/sql-server/sql-server-2019) | [SQL Server LocalDB](https://docs.microsoft.com/en-us/sql/database-engine/configure-windows/sql-server-express-localdb?view=sql-server-ver15?WT.mc_id=AZ-MVP-5002809) or MySQL
+[Visual Studio 2022 v17.4+](https://visualstudio.microsoft.com/) | [Visual Studio Code](https://code.visualstudio.com/) with [.NET 7.0 SDK](http://dot.net)
+[SQL Server 2022](https://www.microsoft.com/en-us/sql-server/sql-server-2022) | [SQL Server LocalDB](https://learn.microsoft.com/en-us/sql/database-engine/configure-windows/sql-server-express-localdb?view=sql-server-ver16&WT.mc_id=AZ-MVP-5002809), PostgreSQL or MySQL 
 
 ### 💾 Setup Database
 
-Moonglade supports two types of database. You can choose either of SQL Server or MySQL.
+Moonglade supports three types of database. You can choose from SQL Server, PostgreSQL or MySQL.
+
+Update your database connection string in `appsettings.*.json`
 
 #### SQL Server
 
-Create a SQL Server 2019 database, e.g. ```moonglade```
-
-Set the `MoongladeDatabase` to your database connection string in `appsettings.Development.json`
-
 ```json
-"MoongladeDatabase": "Server=(localdb)\\MSSQLLocalDB;Database=moonglade;Trusted_Connection=True;"
+"ConnectionStrings": {
+  "MoongladeDatabase": "Server=(localdb)\\MSSQLLocalDB;Database=Moonglade;Trusted_Connection=True;",
+  "DatabaseType": "SqlServer"
+}
 ```
-
 #### MySQL
 
-Set `DatabaseType` to `MySql`
-
 ```json
-"DatabaseType": "MySql"
+"ConnectionStrings": {
+  "MoongladeDatabase": "Server=localhost;Port=3306;Database=moonglade;Uid=root;Pwd=******;",
+  "DatabaseType": "MySql"
+}
 ```
 
-Set the `MoongladeDatabase` to your database connection string in `appsettings.Development.json`
+#### PostgreSql
 
 ```json
-"MoongladeDatabase": "Server=localhost;Port=3306;Database=moonglade;Uid=root;Pwd=******;"
+"ConnectionStrings": {
+  "MoongladeDatabase": "User ID=****;Password=****;Host=localhost;Port=5432;Database=****;Pooling=true;",
+  "DatabaseType": "PostgreSql"
+}
 ```
 
 ### 🔨 Build Source
@@ -78,9 +93,9 @@ Build and run `./src/Moonglade.sln`
 
 ### 🛡 Authentication
 
-#### [Azure Active Directory](https://azure.microsoft.com/en-us/services/active-directory/)
+#### [Microsoft Entra ID](https://azure.microsoft.com/en-us/services/active-directory/)
 
-See [Wiki document](https://github.com/EdiWang/Moonglade/wiki/Use-Azure-Active-Directory-Authentication)
+See [Wiki document](https://github.com/EdiWang/Moonglade/wiki/Use-Microsoft-Entra-ID-Authentication)
 
 #### Local Account (Alternative)
 
@@ -152,7 +167,7 @@ You can also choose File System for image storage if you don't have a cloud opti
 
 ### 📧 Email Notification
 
-If you need email notification for new comments, new replies and pingbacks, you have to setup the [Moonglade.Notification Azure Function](https://github.com/EdiWang/Moonglade.Notification) first, and then enable notification in admin portal.
+If you need email notification for new comments, new replies and pingbacks, you have to setup the [Moonglade.Email Azure Function](https://github.com/EdiWang/Moonglade.Email) first, and then enable notification in admin portal.
 
 ### 🔩 Others
 
@@ -170,6 +185,7 @@ If you need email notification for new comments, new replies and pingbacks, you 
 - [X] FOAF
 - [X] RSD
 - [X] MetaWeblog (Basic Support)
+- [X] Dublin Core Metadata (Basic Support)
 - [ ] BlogML - Under triage
 - [ ] APML - Not planned
 - [ ] Trackback - Not planned
@@ -178,7 +194,6 @@ If you need email notification for new comments, new replies and pingbacks, you 
 
 There are a few individuals already setup thier blogs using Moonglade on Azure (Global or China), Alibaba Cloud, Tencent Cloud, etc.
 
-- [Anduin Xue](https://anduin.aiursoft.com/)
 - [zchwei](https://zchwei.com/)
 - [yycoding](https://www.yycoding.xyz/)
 - [51azure](https://www.51azure.cloud/)
@@ -187,5 +202,7 @@ There are a few individuals already setup thier blogs using Moonglade on Azure (
 - [Leslie Wang](https://lesliewxj.com/)
 - [AllenMasters](https://allenmasters.com)
 - [Hao's House](https://haxu.dev/)
+- [Sascha.Manns](https://saschamanns.de/)
+- [王高峰博客](https://blog.wanggaofeng.net)
 
 *Just Submit PR or issue if you want your blog to be listed here*

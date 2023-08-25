@@ -59,11 +59,7 @@ public class CreatePostCommandHandler : IRequestHandler<CreatePostCommand, PostE
             OriginLink = string.IsNullOrWhiteSpace(request.Payload.OriginLink) ? null : Helper.SterilizeLink(request.Payload.OriginLink),
             HeroImageUrl = string.IsNullOrWhiteSpace(request.Payload.HeroImageUrl) ? null : Helper.SterilizeLink(request.Payload.HeroImageUrl),
             InlineCss = request.Payload.InlineCss,
-            PostExtension = new()
-            {
-                Hits = 0,
-                Likes = 0
-            }
+            IsOutdated = request.Payload.IsOutdated
         };
 
         // check if exist same slug under the same day

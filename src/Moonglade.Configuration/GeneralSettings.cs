@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Moonglade.Configuration;
 
@@ -47,11 +48,6 @@ public class GeneralSettings : IBlogSettings
     [MaxLength(256)]
     public string Description { get; set; }
 
-    [Required]
-    [Display(Name = "Short description")]
-    [MaxLength(32)]
-    public string ShortDescription { get; set; }
-
     [Display(Name = "Side bar HTML code")]
     [DataType(DataType.MultilineText)]
     [MaxLength(2048)]
@@ -75,20 +71,56 @@ public class GeneralSettings : IBlogSettings
 
     public int ThemeId { get; set; }
 
-    [Display(Name = "Show pride mouse cursor and flag")]
-    public bool Pride { get; set; }
+    [Display(Name = "Profile")]
+    public bool WidgetsProfile { get; set; } = true;
 
-    /// <summary>
-    /// Avatar Url
-    /// </summary>
+    [Display(Name = "Tags")]
+    public bool WidgetsTags { get; set; } = true;
+
+    [Display(Name = "Categories")]
+    public bool WidgetsCategoryList { get; set; } = true;
+
+    [Display(Name = "Friend links")]
+    public bool WidgetsFriendLink { get; set; } = true;
+
+    [Display(Name = "Subscription buttons")]
+    public bool WidgetsSubscriptionButtons { get; set; } = true;
+
+    [Display(Name = "Show Admin login button under sidebar")]
+    public bool ShowAdminLoginButton { get; set; }
+
     [MaxLength(64)]
     public string AvatarUrl { get; set; }
 
-    // Use string instead of TimeSpan as workaround for System.Text.Json issue
-    // https://github.com/EdiWang/Moonglade/issues/310
-    public string TimeZoneUtcOffset { get; set; }
+    public TimeSpan TimeZoneUtcOffset { get; set; }
+
+    [Required]
+    [RegularExpression("^[a-z]{2}-[a-zA-Z]{2,4}$")]
+    public string DefaultLanguageCode { get; set; } = "en-us";
+
+    [Display(Name = "Use Dublin Core Metadata")]
+    public bool UseDublinCoreMetaData { get; set; }
+
+    [Display(Name = "Dublin Core License URL")]
+    public string DcLicenseUrl { get; set; }
 
     public GeneralSettings() => ThemeId = 1;
+
+    [JsonIgnore]
+    public static GeneralSettings DefaultValue = new()
+    {
+        OwnerName = "Admin",
+        OwnerEmail = "admin@edi.wang",
+        SiteTitle = "Moonglade",
+        Description = "Moonglade Admin",
+        AutoDarkLightTheme = true,
+        LogoText = "moonglade",
+        MetaKeyword = "moonglade",
+        Copyright = $"[c] {DateTime.UtcNow.Year}",
+        TimeZoneId = "China Standard Time",
+        TimeZoneUtcOffset = TimeSpan.FromHours(8),
+        ThemeId = 1
+    };
 }
 
 public enum SideBarOption

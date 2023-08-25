@@ -133,23 +133,15 @@ public class ImageController : ControllerBase
                 watermarkedStream.ToArray() :
                 stream.ToArray());
 
-        if (_blogConfig.ImageSettings.KeepOriginImage)
+        if (_blogConfig.ImageSettings.IsWatermarkEnabled && _blogConfig.ImageSettings.KeepOriginImage || !skipWatermark)
         {
             var arr = stream.ToArray();
             _ = Task.Run(async () => await _imageStorage.InsertAsync(secondaryFieName, arr));
         }
 
-        _logger.LogInformation($"Image '{primaryFileName}' uloaded.");
+        _logger.LogInformation($"Image '{primaryFileName}' uploaded.");
         var location = $"/image/{finalName}";
         var filename = location;
-
-        // Do NOT use CDN url here because CDN endpoint can change
-        //if (_blogConfig.ImageSettings.EnableCDNRedirect)
-        //{
-        //    var url = _blogConfig.ImageSettings.CDNEndpoint.CombineUrl(finalName);
-        //    location = url;
-        //    filename = url;
-        //}
 
         return Ok(new
         {

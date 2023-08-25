@@ -1,6 +1,4 @@
-﻿using Moonglade.Caching.Filters;
-using Moonglade.Core.PostFeature;
-using Moonglade.Data.Spec;
+﻿using Moonglade.Core.PostFeature;
 using Moonglade.Pingback;
 using Moonglade.Web.Attributes;
 using NUglify;
@@ -34,16 +32,6 @@ public class PostController : ControllerBase
         _logger = logger;
     }
 
-    [HttpGet("segment/published")]
-    [FeatureGate(FeatureFlags.EnableWebApi)]
-    [ProducesResponseType(typeof(IReadOnlyList<PostSegment>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Segment()
-    {
-        // for security, only allow published posts to be listed to third party API calls
-        var list = await _mediator.Send(new ListPostSegmentByStatusQuery(PostStatus.Published));
-        return Ok(list);
-    }
-
     [HttpPost("createoredit")]
     [TypeFilter(typeof(ClearBlogCache), Arguments = new object[]
     {
@@ -53,7 +41,7 @@ public class PostController : ControllerBase
     })]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> CreateOrEdit(PostEditModel model, [FromServices] LinkGenerator linkGenerator)
+    public async Task<IActionResult> CreateOrEdit(PostEditModel model, LinkGenerator linkGenerator)
     {
         try
         {
@@ -102,7 +90,7 @@ public class PostController : ControllerBase
                         postEntity.Slug
                     });
 
-                if (_blogConfig.AdvancedSettings.EnablePingbackSend)
+                if (_blogConfig.AdvancedSettings.EnablePingback)
                 {
                     _ = Task.Run(async () => { await _pingbackSender.TrySendPingAsync(link, postEntity.PostContent); });
                 }

@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Moonglade.Notification.Client;
 using Moonglade.Web.Attributes;
 using System.ComponentModel.DataAnnotations;
+using Moonglade.Email.Client;
 
 namespace Moonglade.Web.Controllers;
 
@@ -12,38 +12,17 @@ namespace Moonglade.Web.Controllers;
 public class CommentController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly ITimeZoneResolver _timeZoneResolver;
     private readonly IBlogConfig _blogConfig;
     private readonly ILogger<CommentController> _logger;
 
     public CommentController(
         IMediator mediator,
         IBlogConfig blogConfig,
-        ITimeZoneResolver timeZoneResolver,
         ILogger<CommentController> logger)
     {
         _mediator = mediator;
         _blogConfig = blogConfig;
-        _timeZoneResolver = timeZoneResolver;
         _logger = logger;
-    }
-
-    [HttpGet("list/{postId:guid}")]
-    [FeatureGate(FeatureFlags.EnableWebApi)]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> List([NotEmpty] Guid postId)
-    {
-        var comments = await _mediator.Send(new GetApprovedCommentsQuery(postId));
-        var resp = comments.Select(p => new
-        {
-            p.Username,
-            Content = p.CommentContent,
-            p.CreateTimeUtc,
-            CreateTimeLocal = _timeZoneResolver.ToTimeZone(p.CreateTimeUtc),
-            Replies = p.CommentReplies
-        });
-
-        return Ok(resp);
     }
 
     [HttpPost("{postId:guid}")]
@@ -54,7 +33,7 @@ public class CommentController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ModelStateDictionary), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Create([NotEmpty] Guid postId, CommentRequest request, [FromServices] IServiceScopeFactory factory)
+    public async Task<IActionResult> Create([NotEmpty] Guid postId, CommentRequest request)
     {
         if (!string.IsNullOrWhiteSpace(request.Email) && !Helper.IsValidEmailAddress(request.Email))
         {
@@ -64,13 +43,17 @@ public class CommentController : ControllerBase
 
         if (!_blogConfig.ContentSettings.EnableComments) return Forbid();
 
-        var ip = (bool)HttpContext.Items["DNT"] ? "N/A" : Helper.GetClientIP(HttpContext);
+        var ip = (bool)HttpContext.Items["DNT"]! ? "N/A" : Helper.GetClientIP(HttpContext);
         var item = await _mediator.Send(new CreateCommentCommand(postId, request, ip));
 
-        if (item is null)
+        switch (item.Status)
         {
-            ModelState.AddModelError(nameof(request.Content), "Your comment contains bad bad word.");
-            return Conflict(ModelState);
+            case -1:
+                ModelState.AddModelError(nameof(request.Content), "Your comment contains bad bad word.");
+                return Conflict(ModelState);
+            case -2:
+                ModelState.AddModelError(nameof(postId), "Comment is closed for this post.");
+                return Conflict(ModelState);
         }
 
         if (_blogConfig.NotificationSettings.SendEmailOnNewComment)
@@ -78,12 +61,11 @@ public class CommentController : ControllerBase
             try
             {
                 await _mediator.Publish(new CommentNotification(
-                    item.Username,
-                    item.Email,
-                    item.IpAddress,
-                    item.PostTitle,
-                    item.CommentContent,
-                    item.CreateTimeUtc));
+                    item.Item.Username,
+                    item.Item.Email,
+                    item.Item.IpAddress,
+                    item.Item.PostTitle,
+                    item.Item.CommentContent));
             }
             catch (Exception e)
             {
@@ -110,14 +92,8 @@ public class CommentController : ControllerBase
     [HttpDelete]
     [ProducesResponseType(typeof(Guid[]), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Delete([FromBody] Guid[] commentIds)
+    public async Task<IActionResult> Delete([FromBody][MinLength(1)] Guid[] commentIds)
     {
-        if (commentIds.Length == 0)
-        {
-            ModelState.AddModelError(nameof(commentIds), "value is empty");
-            return BadRequest(ModelState.CombineErrorMessages());
-        }
-
         await _mediator.Send(new DeleteCommentsCommand(commentIds));
         return Ok(commentIds);
     }
@@ -128,8 +104,7 @@ public class CommentController : ControllerBase
     public async Task<IActionResult> Reply(
         [NotEmpty] Guid commentId,
         [Required][FromBody] string replyContent,
-        [FromServices] LinkGenerator linkGenerator,
-        [FromServices] IServiceScopeFactory factory)
+        LinkGenerator linkGenerator)
     {
         if (!_blogConfig.ContentSettings.EnableComments) return Forbid();
 

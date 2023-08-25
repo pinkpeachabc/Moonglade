@@ -12,7 +12,7 @@ public struct PostSegment
     public DateTime CreateTimeUtc { get; set; }
     public DateTime? LastModifiedUtc { get; set; }
     public bool IsPublished { get; set; }
-    public int Hits { get; set; }
+    public bool IsFeatured { get; set; }
     public bool IsDeleted { get; set; }
 
     public static readonly Expression<Func<PostEntity, PostSegment>> EntitySelector = p => new()
@@ -22,10 +22,10 @@ public struct PostSegment
         Slug = p.Slug,
         PubDateUtc = p.PubDateUtc,
         IsPublished = p.IsPublished,
+        IsFeatured = p.IsFeatured,
         IsDeleted = p.IsDeleted,
         CreateTimeUtc = p.CreateTimeUtc,
         LastModifiedUtc = p.LastModifiedUtc,
-        ContentAbstract = p.ContentAbstract,
-        Hits = p.PostExtension.Hits
+        ContentAbstract = p.ContentAbstract
     };
 }

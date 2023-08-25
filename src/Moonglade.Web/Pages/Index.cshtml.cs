@@ -9,14 +9,14 @@ public class IndexModel : PageModel
 {
     private readonly IBlogConfig _blogConfig;
     private readonly IMediator _mediator;
-    private readonly IBlogCache _cache;
+    private readonly ICacheAside _cache;
 
     public string SortBy { get; set; }
 
     public StaticPagedList<PostDigest> Posts { get; set; }
 
     public IndexModel(
-        IBlogConfig blogConfig, IBlogCache cache, IMediator mediator)
+        IBlogConfig blogConfig, ICacheAside cache, IMediator mediator)
     {
         _blogConfig = blogConfig;
         _cache = cache;
@@ -31,7 +31,7 @@ public class IndexModel : PageModel
             ViewData["sortBy"] = sortBy;
 
             var posts = await _mediator.Send(new ListPostsQuery(pagesize, p, sortBy: sortByEnum));
-            var totalPostsCount = await _cache.GetOrCreateAsync(CacheDivision.General, "postcount", _ => _mediator.Send(new CountPostQuery(CountType.Public)));
+            var totalPostsCount = await _cache.GetOrCreateAsync(BlogCachePartition.General.ToString(), "postcount", _ => _mediator.Send(new CountPostQuery(CountType.Public)));
 
             var list = new StaticPagedList<PostDigest>(posts, p, pagesize, totalPostsCount);
 

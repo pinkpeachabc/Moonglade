@@ -1,5 +1,4 @@
-﻿using Moonglade.Caching.Filters;
-using NUglify;
+﻿using NUglify;
 using System.ComponentModel.DataAnnotations;
 
 namespace Moonglade.Web.Controllers;
@@ -10,10 +9,10 @@ public class ThemeController : ControllerBase
 {
     private readonly IMediator _mediator;
 
-    private readonly IBlogCache _cache;
+    private readonly ICacheAside _cache;
     private readonly IBlogConfig _blogConfig;
 
-    public ThemeController(IMediator mediator, IBlogCache cache, IBlogConfig blogConfig)
+    public ThemeController(IMediator mediator, ICacheAside cache, IBlogConfig blogConfig)
     {
         _mediator = mediator;
 
@@ -29,7 +28,7 @@ public class ThemeController : ControllerBase
     {
         try
         {
-            var css = await _cache.GetOrCreateAsync(CacheDivision.General, "theme", async entry =>
+            var css = await _cache.GetOrCreateAsync(BlogCachePartition.General.ToString(), "theme", async entry =>
             {
                 entry.SlidingExpiration = TimeSpan.FromMinutes(20);
 
@@ -62,7 +61,7 @@ public class ThemeController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(string), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
-    [TypeFilter(typeof(ClearBlogCache), Arguments = new object[] { CacheDivision.General, "theme" })]
+    [TypeFilter(typeof(ClearBlogCache), Arguments = new object[] { BlogCachePartition.General, "theme" })]
     public async Task<IActionResult> Create(CreateThemeRequest request)
     {
         var dic = new Dictionary<string, string>
@@ -81,7 +80,7 @@ public class ThemeController : ControllerBase
     [Authorize]
     [HttpDelete("{id:int}")]
     [ApiConventionMethod(typeof(DefaultApiConventions), nameof(DefaultApiConventions.Delete))]
-    [TypeFilter(typeof(ClearBlogCache), Arguments = new object[] { CacheDivision.General, "theme" })]
+    [TypeFilter(typeof(ClearBlogCache), Arguments = new object[] { BlogCachePartition.General, "theme" })]
     public async Task<IActionResult> Delete([Range(1, int.MaxValue)] int id)
     {
         var oc = await _mediator.Send(new DeleteThemeCommand(id));

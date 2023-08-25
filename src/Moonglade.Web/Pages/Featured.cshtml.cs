@@ -8,11 +8,11 @@ public class FeaturedModel : PageModel
 {
     private readonly IBlogConfig _blogConfig;
     private readonly IMediator _mediator;
-    private readonly IBlogCache _cache;
+    private readonly ICacheAside _cache;
     public StaticPagedList<PostDigest> Posts { get; set; }
 
     public FeaturedModel(
-        IBlogConfig blogConfig, IBlogCache cache, IMediator mediator)
+        IBlogConfig blogConfig, ICacheAside cache, IMediator mediator)
     {
         _blogConfig = blogConfig;
         _cache = cache;
@@ -23,7 +23,7 @@ public class FeaturedModel : PageModel
     {
         var pagesize = _blogConfig.ContentSettings.PostListPageSize;
         var posts = await _mediator.Send(new ListFeaturedQuery(pagesize, p));
-        var count = await _cache.GetOrCreateAsync(CacheDivision.PostCountFeatured, "featured", _ => _mediator.Send(new CountPostQuery(CountType.Featured)));
+        var count = await _cache.GetOrCreateAsync(BlogCachePartition.PostCountFeatured.ToString(), "featured", _ => _mediator.Send(new CountPostQuery(CountType.Featured)));
 
         var list = new StaticPagedList<PostDigest>(posts, p, pagesize, count);
         Posts = list;

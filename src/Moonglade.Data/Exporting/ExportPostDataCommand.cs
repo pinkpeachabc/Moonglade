@@ -12,7 +12,7 @@ public class ExportPostDataCommandHandler : IRequestHandler<ExportPostDataComman
     private readonly IRepository<PostEntity> _repo;
     public ExportPostDataCommandHandler(IRepository<PostEntity> repo) => _repo = repo;
 
-    public Task<ExportResult> Handle(ExportPostDataCommand request, CancellationToken cancellationToken)
+    public Task<ExportResult> Handle(ExportPostDataCommand request, CancellationToken ct)
     {
         var poExp = new ZippedJsonExporter<PostEntity>(_repo, "moonglade-posts", ExportManager.DataDir);
         var poExportData = poExp.ExportData(p => new
@@ -23,8 +23,6 @@ public class ExportPostDataCommandHandler : IRequestHandler<ExportPostDataComman
             p.PostContent,
             p.CreateTimeUtc,
             p.CommentEnabled,
-            p.PostExtension.Hits,
-            p.PostExtension.Likes,
             p.PubDateUtc,
             p.ContentLanguageCode,
             p.IsDeleted,
@@ -32,7 +30,7 @@ public class ExportPostDataCommandHandler : IRequestHandler<ExportPostDataComman
             p.IsPublished,
             Categories = p.PostCategory.Select(pc => pc.Category.DisplayName),
             Tags = p.Tags.Select(pt => pt.DisplayName)
-        }, cancellationToken);
+        }, ct);
 
         return poExportData;
     }

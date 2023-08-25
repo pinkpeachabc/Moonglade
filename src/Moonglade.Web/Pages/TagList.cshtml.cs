@@ -9,13 +9,13 @@ public class TagListModel : PageModel
 {
     private readonly IMediator _mediator;
     private readonly IBlogConfig _blogConfig;
-    private readonly IBlogCache _cache;
+    private readonly ICacheAside _cache;
 
     [BindProperty(SupportsGet = true)]
     public int P { get; set; }
     public StaticPagedList<PostDigest> Posts { get; set; }
 
-    public TagListModel(IMediator mediator, IBlogConfig blogConfig, IBlogCache cache)
+    public TagListModel(IMediator mediator, IBlogConfig blogConfig, ICacheAside cache)
     {
         _mediator = mediator;
         _blogConfig = blogConfig;
@@ -31,7 +31,7 @@ public class TagListModel : PageModel
 
         var pagesize = _blogConfig.ContentSettings.PostListPageSize;
         var posts = await _mediator.Send(new ListByTagQuery(tagResponse.Id, pagesize, P));
-        var count = await _cache.GetOrCreateAsync(CacheDivision.PostCountTag, tagResponse.Id.ToString(), _ => _mediator.Send(new CountPostQuery(CountType.Tag, TagId: tagResponse.Id)));
+        var count = await _cache.GetOrCreateAsync(BlogCachePartition.PostCountTag.ToString(), tagResponse.Id.ToString(), _ => _mediator.Send(new CountPostQuery(CountType.Tag, TagId: tagResponse.Id)));
 
         ViewData["TitlePrefix"] = tagResponse.DisplayName;
 

@@ -1,4 +1,4 @@
-﻿using Moonglade.Caching;
+﻿using Edi.CacheAside.InMemory;
 using Moonglade.Data;
 
 namespace Moonglade.Core.CategoryFeature;
@@ -11,9 +11,9 @@ public class UpdateCategoryCommand : CreateCategoryCommand, IRequest<OperationCo
 public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryCommand, OperationCode>
 {
     private readonly IRepository<CategoryEntity> _repo;
-    private readonly IBlogCache _cache;
+    private readonly ICacheAside _cache;
 
-    public UpdateCategoryCommandHandler(IRepository<CategoryEntity> repo, IBlogCache cache)
+    public UpdateCategoryCommandHandler(IRepository<CategoryEntity> repo, ICacheAside cache)
     {
         _repo = repo;
         _cache = cache;
@@ -29,7 +29,7 @@ public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryComman
         cat.Note = request.Note?.Trim();
 
         await _repo.UpdateAsync(cat, ct);
-        _cache.Remove(CacheDivision.General, "allcats");
+        _cache.Remove(BlogCachePartition.General.ToString(), "allcats");
 
         return OperationCode.Done;
     }

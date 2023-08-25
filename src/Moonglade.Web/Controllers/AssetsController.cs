@@ -1,5 +1,4 @@
-﻿using Moonglade.Caching.Filters;
-using SixLabors.ImageSharp;
+﻿using SixLabors.ImageSharp;
 
 namespace Moonglade.Web.Controllers;
 
@@ -22,42 +21,34 @@ public class AssetsController : ControllerBase
 
     [HttpGet("avatar")]
     [ResponseCache(Duration = 300)]
-    public async Task<IActionResult> Avatar([FromServices] IBlogCache cache)
+    public async Task<IActionResult> Avatar(ICacheAside cache)
     {
         var fallbackImageFile = Path.Join($"{_env.WebRootPath}", "images", "default-avatar.png");
 
-        try
+        var bytes = await cache.GetOrCreateAsync(BlogCachePartition.General.ToString(), "avatar", async _ =>
         {
-            var bytes = await cache.GetOrCreateAsync(CacheDivision.General, "avatar", async _ =>
-            {
-                _logger.LogTrace("Avatar not on cache, getting new avatar image...");
+            _logger.LogTrace("Avatar not on cache, getting new avatar image...");
 
-                var data = await _mediator.Send(new GetAssetQuery(AssetId.AvatarBase64));
-                if (string.IsNullOrWhiteSpace(data)) return null;
+            var data = await _mediator.Send(new GetAssetQuery(AssetId.AvatarBase64));
+            if (string.IsNullOrWhiteSpace(data)) return null;
 
-                var avatarBytes = Convert.FromBase64String(data);
-                return avatarBytes;
-            });
+            var avatarBytes = Convert.FromBase64String(data);
+            return avatarBytes;
+        });
 
-            if (null == bytes)
-            {
-                return PhysicalFile(fallbackImageFile, "image/png");
-            }
-
-            return File(bytes, "image/png");
-        }
-        catch (FormatException e)
+        if (null == bytes)
         {
-            _logger.LogError($"Error {nameof(Avatar)}(), Invalid Base64 string", e);
             return PhysicalFile(fallbackImageFile, "image/png");
         }
+
+        return File(bytes, "image/png");
     }
 
     [Authorize]
     [HttpPost("avatar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [TypeFilter(typeof(ClearBlogCache), Arguments = new object[] { CacheDivision.General, "avatar" })]
+    [TypeFilter(typeof(ClearBlogCache), Arguments = new object[] { BlogCachePartition.General, "avatar" })]
     public async Task<IActionResult> Avatar([FromBody] string base64Img)
     {
         base64Img = base64Img.Trim();

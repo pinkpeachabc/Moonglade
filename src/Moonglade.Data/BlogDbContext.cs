@@ -18,19 +18,15 @@ public class BlogDbContext : DbContext
     public virtual DbSet<CommentReplyEntity> CommentReply { get; set; }
     public virtual DbSet<PostEntity> Post { get; set; }
     public virtual DbSet<PostCategoryEntity> PostCategory { get; set; }
-    public virtual DbSet<PostExtensionEntity> PostExtension { get; set; }
     public virtual DbSet<PostTagEntity> PostTag { get; set; }
     public virtual DbSet<TagEntity> Tag { get; set; }
     public virtual DbSet<FriendLinkEntity> FriendLink { get; set; }
     public virtual DbSet<PageEntity> CustomPage { get; set; }
-    public virtual DbSet<MenuEntity> Menu { get; set; }
-    public virtual DbSet<SubMenuEntity> SubMenu { get; set; }
     public virtual DbSet<LocalAccountEntity> LocalAccount { get; set; }
     public virtual DbSet<PingbackEntity> Pingback { get; set; }
     public virtual DbSet<BlogThemeEntity> BlogTheme { get; set; }
     public virtual DbSet<BlogAssetEntity> BlogAsset { get; set; }
     public virtual DbSet<BlogConfigurationEntity> BlogConfiguration { get; set; }
-    public virtual DbSet<EmailNotificationEntity> EmailNotification { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,8 +34,6 @@ public class BlogDbContext : DbContext
         modelBuilder.ApplyConfiguration(new CategoryConfiguration());
         modelBuilder.ApplyConfiguration(new TagConfiguration());
         modelBuilder.ApplyConfiguration(new FriendLinkConfiguration());
-        modelBuilder.ApplyConfiguration(new MenuConfiguration());
-        modelBuilder.ApplyConfiguration(new SubMenuConfiguration());
         modelBuilder.ApplyConfiguration(new BlogConfigurationConfiguration());
 
         modelBuilder
@@ -70,14 +64,11 @@ public static class BlogDbContextExtension
         context.Comment.RemoveRange();
         context.FriendLink.RemoveRange();
         context.Pingback.RemoveRange();
-        context.PostExtension.RemoveRange();
         context.Post.RemoveRange();
-        context.Menu.RemoveRange();
         context.BlogConfiguration.RemoveRange();
         context.BlogAsset.RemoveRange();
         context.BlogTheme.RemoveRange();
         context.LocalAccount.RemoveRange();
-        context.EmailNotification.RemoveRange();
 
         await context.SaveChangesAsync();
     }

@@ -1,20 +1,28 @@
 ﻿export let simplemde = null;
 
 function slugify(text) {
-    var isEngNum = /^[A-Za-z][A-Za-z0-9 ]*$/.test(text);
-    if (isEngNum) {
+    var isValidTitle = /^[A-Za-z][A-Za-z0-9 \(\)#,\.\?]*$/.test(text);
+    if (isValidTitle) {
         return text
             .toLowerCase()
+            .replace('(', '')
+            .replace(')', '')
+            .replace('#', '')
+            .replace(',', '')
+            .replace('.', '')
+            .replace('?', '')
             .replace(/[^\w ]+/g, '')
             .replace(/ +/g, '-');
     }
     return '';
 }
 
-export function initEvents() {
-    $('#ViewModel_Title').change(function () {
-        document.querySelector('#ViewModel_Slug').value = slugify($(this).val());
-    });
+export function initEvents(slugifyTitle) {
+    if (slugifyTitle) {
+        $('#ViewModel_Title').change(function () {
+            document.querySelector('#ViewModel_Slug').value = slugify($(this).val());
+        });
+    }
 
     $('#btn-preview').click(function (e) {
         submitForm(e);
@@ -28,6 +36,16 @@ export function initEvents() {
         $('input[name="ViewModel.IsPublished"]').val('True');
         submitForm(e);
     });
+
+    $('.btn-modify-slug').click(function () {
+        var message = 'This post was published for more than 7 days, changing slug will result in breaking SEO, would you like to continue?';
+
+        if (confirm(message)) {
+            $('#ViewModel_Slug').removeAttr('readonly');
+            $('#ViewModel_Slug').focus();
+            $('.btn-modify-slug').hide();
+        }
+    })
 
     function submitForm(e) {
         if (window.tinyMCE) {
@@ -85,13 +103,13 @@ export function loadTinyMCE(textareaSelector) {
             selector: textareaSelector,
             themes: 'silver',
             skin: 'tinymce-5',
-            // height: ,
+            height: 'calc(100vh - 400px)',
             relative_urls: false, // avoid image upload fuck up
             browser_spellcheck: true,
             branding: false,
             block_formats: 'Paragraph=p; Header 2=h2; Header 3=h3; Header 4=h4; Preformatted=pre',
             plugins: 'advlist autolink autosave link image lists charmap preview anchor pagebreak searchreplace wordcount visualblocks visualchars code fullscreen insertdatetime media nonbreaking save table directionality template codesample emoticons',
-            toolbar: 'blocks | bold italic underline strikethrough | forecolor backcolor | removeformat | charmap emoticons link hr image table codesample media | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | code | fullscreen',
+            toolbar: 'undo redo | blocks | bold italic underline strikethrough | forecolor backcolor | paste pastetext removeformat | hr link image codesample | charmap emoticons table media | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | code | fullscreen',
             save_onsavecallback: function () {
                 $('#btn-save').trigger('click');
             },
@@ -113,6 +131,7 @@ export function loadTinyMCE(textareaSelector) {
                 { text: 'HTML/XML', value: 'markup' },
                 { text: 'JavaScript', value: 'javascript' },
                 { text: 'Json', value: 'json' },
+                { text: 'Kotlin', value: 'kotlin' },
                 { text: 'Less', value: 'less' },
                 { text: 'Lua', value: 'lua' },
                 { text: 'Markdown', value: 'markdown' },
@@ -120,6 +139,7 @@ export function loadTinyMCE(textareaSelector) {
                 { text: 'Plain Text', value: 'plaintext' },
                 { text: 'Python', value: 'python' },
                 { text: 'PHP', value: 'php' },
+                { text: 'R', value: 'r' },
                 { text: 'Ruby', value: 'ruby' },
                 { text: 'Rust', value: 'rust' },
                 { text: 'SCSS', value: 'scss' },
